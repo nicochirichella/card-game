@@ -1,4 +1,5 @@
-import { Deck } from "../../deck";
+import { Deck, shuffle } from "../../deck";
+import { Hand } from "../../hand";
 import { TurnBasedGame } from "../../turn_based_game";
 import { TrucoPlayer as Player } from './trucoPlayer';
 
@@ -25,8 +26,33 @@ export class Truco extends TurnBasedGame<TrucoGameState> {
         }
     }
 
+    private async dealCards(): Promise<Hand[]> {
+        const shuffleDeck: Deck = shuffle(this.deck);
+        const hands: Hand[] = this.players.map(p => {
+            return {allCardsInHand: [], playedCards: [], remainingCards: [0,1,2]}
+        });
+
+        const numberOfPlayers = this.players.length;
+        const cardsInHand = 3;
+        for (let i=0; i < numberOfPlayers * cardsInHand; i++){
+            hands[i%numberOfPlayers].allCardsInHand.push(shuffleDeck.cards[i]);
+        }
+
+        return hands;
+    }
+
+    private async startHand(firstPlayerIndex: number) {
+        let hands: Hand[] = await this.dealCards();
+        await Promise.allSettled(this.players.map((p, index) => p.startHand(hands[index])));
+        this.players[firstPlayerIndex].playerTurn = true;
+
+    }
+
     async playRound(gameState: TrucoGameState): Promise<TrucoGameState> {
+        const firstPlayerIndex = gameState.roundNumber % this.players.length;
         gameState.roundNumber++;
+        await this.startHand(firstPlayerIndex);
+        
         if (gameState.roundNumber === 5){
             gameState.winner = this.players[0];
         }
