@@ -1,9 +1,13 @@
 import express from 'express';
-import { serialize } from 'v8';
 import WebSocket from "ws";
 import { Truco } from './components/games/truco/truco';
 import { TrucoPlayer } from './components/games/truco/trucoPlayer';
 const cors = require('cors');
+const readline = require('readline');
+const rl = readline.createInterface({
+    input: process.stdin,
+    output: process.stdout
+});
 
 const app = express();
 app.use(cors());
@@ -21,7 +25,13 @@ const wrapExpress = async (expressServer: any) => {
             });
         });
     
-    const truco = new Truco([new TrucoPlayer('nico', 'my_url'), new TrucoPlayer('chiri', 'my_url')]);
+    const truco = new Truco([new TrucoPlayer('nico', 'my_url'), new TrucoPlayer('chiri', 'my_url')], (p, opts) => {
+        return new Promise((resolve) => {
+            rl.question(`Player ${p.name} pick an option ${opts}: `, (o: string) => {
+                resolve(o)
+            });
+        })
+    });
     const winner: TrucoPlayer = await truco.playGame();
     console.log(winner);
     return websocketServer;
