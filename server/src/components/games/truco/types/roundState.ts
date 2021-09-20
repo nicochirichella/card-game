@@ -6,7 +6,8 @@ export type RoundState = {
     envidoStates: string[]
     envidoAvailable: boolean,
     playerPendingTrucoResponse?: Player,
-    lastToPlay?: Player,
+    nextCardPlayer: Player,
     currentPlayer: Player,
-    startedHandPlayer: Player
+    startedHandPlayer: Player,
+    handNum: number
 };

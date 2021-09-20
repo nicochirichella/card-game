@@ -32,7 +32,7 @@ const wrapExpress = async (expressServer: any) => {
             });
         })
     });
-    const winner: TrucoPlayer = await truco.playGame();
+    const winner = await truco.playGame();
     console.log(winner);
     return websocketServer;
 }
