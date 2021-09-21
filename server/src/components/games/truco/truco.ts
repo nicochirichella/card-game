@@ -18,6 +18,7 @@ type TrucoGameState = {
 }
 
 type CommandRequester = (p: Player, options: string[]) => Promise<string>
+type Notifier = (state: RoundState, gs: TrucoGameState) => void
 
 const cardOrder: Card[][] = [
     [{n: 1, suit: 'ESPADA'}],
@@ -39,11 +40,13 @@ const cardOrder: Card[][] = [
 export class Truco extends TurnBasedGame<TrucoGameState> {
     private deck: Deck;
     private cr: CommandRequester;
+    private notifier: Notifier;
 
-    constructor(players: Player[], cr: CommandRequester) {
+    constructor(players: Player[], cr: CommandRequester, notifier: Notifier) {
         super(players);
         this.deck = this.initializeDeck();
         this.cr = cr;
+        this.notifier = notifier;
     }
 
     getInitialGameState(players: Player[]): TrucoGameState {
@@ -177,7 +180,6 @@ export class Truco extends TurnBasedGame<TrucoGameState> {
 
         if (currentPlayer.hand.playedCards.length === oponent.hand.playedCards.length) {
             const handDiff = this.decideHandWinner(currentPlayer, oponent, roundState.handNum);
-            console.log("HD " + handDiff)
             if (handDiff < 0) {
                 currentPlayer.handsWon++;
                 if (roundState.handNum > 0 && currentPlayer.handsWon > oponent.handsWon) {
@@ -256,10 +258,8 @@ export class Truco extends TurnBasedGame<TrucoGameState> {
 
         await this.startHand(firstPlayerIndex);
 
-        console.log(roundState.currentPlayer.score);
-        console.log(this.getOponent(roundState.currentPlayer).score);
-
         while (roundState.state != 'endHand') {
+            await this.notifier(roundState, gameState);
             switch(roundState.state){
                 case 'playCard': 
                     roundState.currentPlayer = roundState.nextCardPlayer;
@@ -334,11 +334,13 @@ export class Truco extends TurnBasedGame<TrucoGameState> {
 
     private initializeDeck(): Deck{
         let deck: Deck = { cards: [] };
-        for (let i = 0; i < 12 ; i++){
-            deck.cards.push({n: i, suit: 'ORO'});
-            deck.cards.push({n: i, suit: 'COPA'});
-            deck.cards.push({n: i, suit: 'ESPADA'});
-            deck.cards.push({n: i, suit: 'BASTO'});
+        for (let i = 1; i < 12 ; i++){
+            if (i !== 8 && i!== 9) {
+                deck.cards.push({n: i, suit: 'ORO'});
+                deck.cards.push({n: i, suit: 'COPA'});
+                deck.cards.push({n: i, suit: 'ESPADA'});
+                deck.cards.push({n: i, suit: 'BASTO'});
+            }
         }
         return deck;
     }

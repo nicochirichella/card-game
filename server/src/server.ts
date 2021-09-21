@@ -31,7 +31,32 @@ const wrapExpress = async (expressServer: any) => {
                 resolve(o)
             });
         })
-    });
+    }, (s, gs) => {
+        let p1 = gs.players[0];
+        let p2 = gs.players[1];
+        const h = [p1.hand, p2.hand];
+        console.log("SCORE " + [p1.score, p2.score]);
+        if (gs.winner){
+            console.log("WE HAVE A NEW WINNER: CONGRATS ", gs.winner.name, "!!!");
+        } else {
+            console.log(h[0].remainingCards.map(c => h[0].allCardsInHand[c]));
+            console.log(h[0].playedCards.map(c => h[0].allCardsInHand[c]));
+            // if (s.lastToPlay ) console.log(s.lastToPlay.name, ": ", s.lastToPlay.lastState);
+            // if (s.envido) {
+            //     const lastPlayerAnswer = s.envido.oponentPoints ? `${s.envido.oponentPoints} son mejores` : "son buenas";
+            //     if(p1.startedPlaying) {
+            //         console.log("p1: ", s.envido.currentPlayerPoints);
+            //         console.log("p2: ", lastPlayerAnswer);
+            //     } else {
+            //         console.log("p1: ", lastPlayerAnswer);
+            //         console.log("p2: ", s.envido.currentPlayerPoints);
+            //     }
+            // }
+            console.log(h[1].playedCards.map(c => h[1].allCardsInHand[c]));
+            console.log(h[1].remainingCards.map(c => h[1].allCardsInHand[c]));
+        }
+    }
+    );
     const winner = await truco.playGame();
     console.log(winner);
     return websocketServer;
