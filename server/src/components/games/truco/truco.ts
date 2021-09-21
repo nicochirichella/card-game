@@ -220,6 +220,22 @@ export class Truco extends TurnBasedGame<TrucoGameState> {
         } 
     }
 
+    private async handleTrucoResponse(roundState: RoundState, trucoPoints: number){
+        if (roundState.state === 'quiero') {
+            roundState.trucoPoints = trucoPoints;
+            roundState.state = 'playCard';
+        } else if (roundState.state === 'noQuiero') {
+            this.getOponent(roundState.currentPlayer).addScore(roundState.trucoPoints);
+            roundState.state = 'finalPlayAction';
+        }
+    }
+
+    private async setLastTrucoPlayer(roundState: RoundState){
+        let oponent = this.getOponent(roundState.currentPlayer);
+        roundState.currentPlayer.lastTrucoPlayer = false;
+        oponent.lastTrucoPlayer = true;
+    }
+
     async playRound(gameState: TrucoGameState): Promise<TrucoGameState> {
         const firstPlayerIndex = gameState.roundNumber % this.players.length;
         const roundState: RoundState = {
@@ -234,6 +250,7 @@ export class Truco extends TurnBasedGame<TrucoGameState> {
             startedHandPlayer: this.players[firstPlayerIndex] as Player,
             handNum: 0
         }; 
+        let options: string[];
         gameState.roundNumber++;
         roundState.state = 'playCard';
 
@@ -246,7 +263,7 @@ export class Truco extends TurnBasedGame<TrucoGameState> {
             switch(roundState.state){
                 case 'playCard': 
                     roundState.currentPlayer = roundState.nextCardPlayer;
-                    let options = this.getPlayCardOptions(roundState);
+                    options = this.getPlayCardOptions(roundState);
                     roundState.state = await this.getPlayerCommand(roundState.currentPlayer, options);
                     break;
                 case isEnvidoState(roundState.state):
@@ -258,9 +275,41 @@ export class Truco extends TurnBasedGame<TrucoGameState> {
                     await this.playCard(roundState)
                     break;
                 case 'truco':
-                    console.log('truco state');
-                    roundState.state = 'endHand';
+                    if (!roundState.playerPendingTrucoResponse || roundState.playerPendingTrucoResponse !== roundState.currentPlayer){
+                        this.nextPlayer(roundState);
+                    }
+                    
+                    this.setLastTrucoPlayer(roundState);
+
+                    options = ['quiero', 'noQuiero', 'retruco', 'mazo'];
+                    if (roundState.envidoAvailable && roundState.currentPlayer.hand.playedCards.length === 0) {
+                        options = options.concat(['envido','realEnvido','faltaEnvido']);
+                    }
+
+                    roundState.envidoAvailable = false;
+                    roundState.state = await this.getPlayerCommand(roundState.currentPlayer, options);
+                    if(isEnvidoState(roundState.state) === roundState.state) {
+                        roundState.playerPendingTrucoResponse = roundState.currentPlayer;
+                    } else {
+                        this.handleTrucoResponse(roundState, 2);
+                    }
                     break;
+                case 'retruco':
+                    this.nextPlayer(roundState);
+                    roundState.trucoPoints = 2;
+                    this.setLastTrucoPlayer(roundState);
+                    options = ['quiero', 'noQuiero', 'valeCuatro', 'mazo'];
+                    roundState.state = await this.getPlayerCommand(roundState.currentPlayer, options);
+                    this.handleTrucoResponse(roundState, 3);
+                    break;
+                case 'valecuatro':
+                    this.nextPlayer(roundState);
+                    roundState.trucoPoints = 3;
+                    this.setLastTrucoPlayer(roundState);
+                    options = ['quiero', 'noQuiero', 'mazo'];
+                    roundState.state = await this.getPlayerCommand(roundState.currentPlayer, options);
+                    this.handleTrucoResponse(roundState, 4);
+                    break;    
                 case 'mazo':
                     this.nextPlayer(roundState);
                     roundState.currentPlayer.addScore(roundState.trucoPoints + roundState.envidoPoints);
